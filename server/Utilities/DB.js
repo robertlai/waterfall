@@ -4,7 +4,7 @@
 
   monk = require('monk');
 
-  db = monk('127.0.0.1:27017/waterfall');
+  db = monk('mongodb://dev:password@ds059682.mongolab.com:59682/waterfall');
 
   module.exports = db;
 
