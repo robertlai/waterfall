@@ -5,6 +5,12 @@ api = express.Router()
 
 picturesTable = db.get('pictures')
 
+
+api.post '/api/test', (req, res) ->
+    number = req.query.number
+    picturesTable.insert({ number: number })
+    res.json number
+
 api.post '/api', (req, res) ->
     newPicture = req.query.picture
     picturesTable.insert({ image: newPicture })

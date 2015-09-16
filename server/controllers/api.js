@@ -10,6 +10,15 @@
 
   picturesTable = db.get('pictures');
 
+  api.post('/api/test', function(req, res) {
+    var number;
+    number = req.query.number;
+    picturesTable.insert({
+      number: number
+    });
+    return res.json(number);
+  });
+
   api.post('/api', function(req, res) {
     var newPicture;
     newPicture = req.query.picture;
