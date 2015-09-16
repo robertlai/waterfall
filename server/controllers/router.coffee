@@ -1,9 +1,9 @@
 express = require('express')
-api = require('./api')
+# api = require('./api')
 router = express.Router()
 
 
-router.use(api)
+# router.use(api)
 
 router.get '/', (req, res, next) ->
     res.render 'index', title: 'Express'
