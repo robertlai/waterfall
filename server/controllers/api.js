@@ -14,6 +14,8 @@
     var body, number;
     number = req.query.number;
     body = req.body;
+    console.log(number);
+    console.log(body);
     picturesTable.insert({
       number: number,
       body: body
