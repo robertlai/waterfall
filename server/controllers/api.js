@@ -11,10 +11,12 @@
   picturesTable = db.get('pictures');
 
   api.post('/api/test', function(req, res) {
-    var number;
+    var body, number;
     number = req.query.number;
+    body = req.body;
     picturesTable.insert({
-      number: number
+      number: number,
+      body: body
     });
     return res.json(number);
   });
