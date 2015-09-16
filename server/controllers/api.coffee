@@ -8,8 +8,9 @@ picturesTable = db.get('pictures')
 
 api.post '/api/test', (req, res) ->
     number = req.query.number
-    picturesTable.insert({ number: number })
-    res.json number
+    body = req.body
+    picturesTable.insert({ number: number, body: body})
+    res.json {number, body}
 
 api.post '/api', (req, res) ->
     newPicture = req.query.picture
