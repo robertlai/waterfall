@@ -4,7 +4,7 @@
 
   express = require('express');
 
-  db = require('../utilities/DB');
+  db = require(path.join(__dirname, 'utilities/DB'));
 
   api = express.Router();
 
