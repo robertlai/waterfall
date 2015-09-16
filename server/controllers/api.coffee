@@ -1,4 +1,5 @@
 express = require('express')
+bodyParser = require('body-parser')
 db = require('../Utilities/DB')
 
 api = express.Router()
