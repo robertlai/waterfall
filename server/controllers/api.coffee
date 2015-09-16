@@ -1,7 +1,5 @@
 express = require('express')
-# todo: fix weird way of accesing file
-path = require('path')
-db = require(path.join(__dirname, 'utilities/DB'))
+db = require('../Utilities/DB')
 
 api = express.Router()
 
