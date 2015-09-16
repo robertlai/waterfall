@@ -1,12 +1,13 @@
 express = require('express')
 logger = require('morgan')
 
+path = require('path')
 
 router = require('./controllers/router')
 
 app = express()
 
-app.set('views', 'views')
+app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'jade')
 app.use(express.static('public'))
 
