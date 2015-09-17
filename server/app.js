@@ -16,7 +16,7 @@
 
   app.set('view engine', 'jade');
 
-  app.use(express["static"]('public'));
+  app.use(express["static"](__dirname + '/data/images'));
 
   app.use(logger('dev'));
 
