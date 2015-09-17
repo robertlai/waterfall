@@ -28,7 +28,8 @@ import java.util.Date;
 
 
 public class CaptureActivity extends ActionBarActivity {
-
+    //static final String URL = "http://localhost:3000/api";
+    static final String URL = "http://waterfallapi.herokuapp.com/api";
     private static String logtag = "Waterfall";
     private static int TAKE_PICTURE = 1;
     private static int SCALED_WIDTH = 1024;
@@ -43,6 +44,8 @@ public class CaptureActivity extends ActionBarActivity {
 
         Button cameraButton = (Button)findViewById(R.id.button_camera);
         cameraButton.setOnClickListener(cameraListener);
+
+        getPhoto();
     }
 
     private OnClickListener cameraListener = new OnClickListener() {
@@ -59,6 +62,44 @@ public class CaptureActivity extends ActionBarActivity {
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
         startActivityForResult(intent, TAKE_PICTURE);
         setIntent(null);
+    }
+
+    private void getPhoto(){
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.get(URL, new FileAsyncHttpResponseHandler(this) {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, File response) {
+                // Do something with the file `response`
+                System.out.println(statusCode + " " + response.getAbsolutePath());
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable e, File response) {
+                // called when response HTTP status is "4XX" (eg. 401, 403, 404)
+                System.out.println(statusCode);
+            }
+        });
+    }
+
+    private void postPhoto(){
+        File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
+        RequestParams params = new RequestParams();
+        try {
+            params.put("image", myFile);
+        } catch(Exception e) {}
+
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.post(URL, params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] bytes) {
+                System.out.println(statusCode);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] bytes, Throwable throwable) {
+                System.out.println(statusCode);
+            }
+        });
     }
 
     @Override
@@ -79,28 +120,6 @@ public class CaptureActivity extends ActionBarActivity {
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
                 imageView.setImageBitmap(scaledBitmap);
                 Toast.makeText(CaptureActivity.this, selectedImage.toString(), Toast.LENGTH_LONG).show();
-
-                //String url = "http://localhost:3000/api";
-                String url = "http://waterfallapi.herokuapp.com/api";
-
-                File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + sdf.format(date) + ".jpg");
-                RequestParams params = new RequestParams();
-                try {
-                    params.put("image", myFile);
-                } catch(Exception e) {}
-
-                AsyncHttpClient client = new AsyncHttpClient();
-                client.post(url, params, new AsyncHttpResponseHandler() {
-                    @Override
-                    public void onSuccess(int statusCode, Header[] headers, byte[] bytes) {
-                        System.out.println(statusCode);
-                    }
-
-                    @Override
-                    public void onFailure(int statusCode, Header[] headers, byte[] bytes, Throwable throwable) {
-                        System.out.println(statusCode);
-                    }
-                });
             } catch (Exception e){
                 Log.e(logtag, e.toString());
             }
