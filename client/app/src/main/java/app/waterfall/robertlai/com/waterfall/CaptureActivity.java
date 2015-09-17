@@ -18,7 +18,13 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.loopj.android.http.*;
+
+import org.apache.http.Header;
+
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 
 public class CaptureActivity extends ActionBarActivity {
@@ -26,7 +32,9 @@ public class CaptureActivity extends ActionBarActivity {
     private static String logtag = "Waterfall";
     private static int TAKE_PICTURE = 1;
     private static int SCALED_WIDTH = 1024;
-    private Uri imageUri;
+    private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+    private static Date date;
+    private static Uri imageUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,10 +53,12 @@ public class CaptureActivity extends ActionBarActivity {
 
     private void takePhoto(View view){
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
-        File photo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_photo.jpg");
+        date = new Date();
+        File photo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + sdf.format(date) + ".jpg");
         imageUri = Uri.fromFile(photo);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
         startActivityForResult(intent, TAKE_PICTURE);
+        setIntent(null);
     }
 
     @Override
@@ -69,6 +79,28 @@ public class CaptureActivity extends ActionBarActivity {
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
                 imageView.setImageBitmap(scaledBitmap);
                 Toast.makeText(CaptureActivity.this, selectedImage.toString(), Toast.LENGTH_LONG).show();
+
+                //String url = "http://waterfallapi.herokuapp.com/api/test";
+                String url = "http://waterfallapi.herokuapp.com/api/test?number=123";
+
+                File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + sdf.format(date) + ".jpg");
+                RequestParams params = new RequestParams();
+                try {
+                    //params.put("photo", myFile);
+                } catch(Exception e) {}
+
+                AsyncHttpClient client = new AsyncHttpClient();
+                client.post(url, params, new AsyncHttpResponseHandler() {
+                    @Override
+                    public void onSuccess(int statusCode, Header[] headers, byte[] bytes) {
+                        System.out.println(statusCode);
+                    }
+
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, byte[] bytes, Throwable throwable) {
+                        System.out.println(statusCode);
+                    }
+                });
             } catch (Exception e){
                 Log.e(logtag, e.toString());
             }
