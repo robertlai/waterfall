@@ -1,25 +1,33 @@
+fs = require('fs')
 express = require('express')
+mongoose = require('mongoose')
 db = require('../Utilities/DB')
+
 
 api = express.Router()
 
-picturesTable = db.get('pictures')
+pictureSchema = new mongoose.Schema({
+    image: Buffer
+})
+Picture = mongoose.model('picture', pictureSchema)
 
-
-api.post '/api/test', (req, res) ->
-    number = req.query.number
-    body = req.body
-    picturesTable.insert({ number: number, body: body})
-    res.json {number, body}
 
 api.post '/api', (req, res) ->
-    newPicture = req.query.picture
-    picturesTable.insert({ image: newPicture })
-    res.json "yay"
+
+    fileLocation = __dirname + '/../image.JPG'
+    fileWriteStream = fs.createWriteStream(fileLocation)
+    fileWriteStream.on 'finish', ->
+        picture = new Picture
+        picture.image = fs.readFileSync(fileLocation)
+        fs.unlinkSync(fileLocation)
+        picture.save (err, picture) ->
+            throw err if err
+        .then ->
+            res.sendStatus(200)
+    req.pipe(fileWriteStream)
 
 api.get '/api', (req, res) ->
-    picturesTable.find {}, (err, pictures) ->
-        throw err if err
+    Picture.find {}, (err, pictures) ->
         res.json pictures
 
 

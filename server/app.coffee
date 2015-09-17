@@ -1,5 +1,4 @@
 express = require('express')
-bodyParser = require('body-parser')
 logger = require('morgan')
 
 path = require('path')
@@ -12,7 +11,6 @@ app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'jade')
 app.use(express.static('public'))
 
-app.use(bodyParser.text({}))
 app.use logger('dev')
 app.use(router)
 

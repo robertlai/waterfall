@@ -1,6 +1,6 @@
-monk = require('monk')
+mongoose = require('mongoose')
 
-db = monk('mongodb://dev:password@ds059682.mongolab.com:59682/waterfall')
+db = mongoose.connect('mongodb://dev:password@ds059682.mongolab.com:59682/waterfall')
 
 
 module.exports = db
