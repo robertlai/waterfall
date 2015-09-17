@@ -1,7 +1,6 @@
 package app.waterfall.robertlai.com.waterfall;
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -24,7 +23,6 @@ import com.loopj.android.http.*;
 import org.apache.http.Header;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
