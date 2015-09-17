@@ -63,7 +63,6 @@ api.get '/api', (req, res) ->
         (
             if +picture.fileName > +currentLastFile
                 res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPG')
-                # res.sendFile(picture.fileName + '.JPG', { root: fileLocation })
                 return
         ) for picture in pictures
         res.sendStatus(404)
