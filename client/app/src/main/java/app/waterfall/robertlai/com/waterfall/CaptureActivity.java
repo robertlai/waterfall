@@ -80,13 +80,13 @@ public class CaptureActivity extends ActionBarActivity {
                 imageView.setImageBitmap(scaledBitmap);
                 Toast.makeText(CaptureActivity.this, selectedImage.toString(), Toast.LENGTH_LONG).show();
 
-                //String url = "http://waterfallapi.herokuapp.com/api/test";
-                String url = "http://waterfallapi.herokuapp.com/api/test?number=123";
+                //String url = "http://localhost:3000/api";
+                String url = "http://waterfallapi.herokuapp.com/api";
 
                 File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + sdf.format(date) + ".jpg");
                 RequestParams params = new RequestParams();
                 try {
-                    //params.put("photo", myFile);
+                    params.put("image", myFile);
                 } catch(Exception e) {}
 
                 AsyncHttpClient client = new AsyncHttpClient();
