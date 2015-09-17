@@ -73,9 +73,7 @@
       for (i = 0, len = pictures.length; i < len; i++) {
         picture = pictures[i];
         if (+picture.fileName > +currentLastFile) {
-          res.sendFile(picture.fileName + '.JPG', {
-            root: fileLocation
-          });
+          res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPG');
           return;
         }
       }

@@ -62,7 +62,8 @@ api.get '/api', (req, res) ->
         throw err if err
         (
             if +picture.fileName > +currentLastFile
-                res.sendFile(picture.fileName + '.JPG', { root: fileLocation })
+                res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPG')
+                # res.sendFile(picture.fileName + '.JPG', { root: fileLocation })
                 return
         ) for picture in pictures
         res.sendStatus(404)
