@@ -2,17 +2,18 @@ fs = require('fs')
 express = require('express')
 mongoose = require('mongoose')
 db = require('../Utilities/DB')
-JSFtp = require('jsftp')
+FTP = require('ftp')
 
 
 api = express.Router()
 
 
-ftp = new JSFtp({
+ftp = new FTP
+ftp.connect({
   host: 'ftp.rcylai.ca'
   port: 21
   user: 'waterfall@rcylai.ca'
-  pass: 'Waterfall0pw'
+  password: 'Waterfall0pw'
 })
 
 
@@ -24,13 +25,12 @@ Picture = mongoose.model('picture', pictureSchema)
 
 api.post '/api', (req, res) ->
     fileName = (new Date()).getTime()
-    fullFilePath = __dirname + fileName + '.JPG'
+    fullFilePath = __dirname + '/' + fileName + '.JPG'
 
     fileWriteStream = fs.createWriteStream(fullFilePath)
 
     fileWriteStream.on 'finish', ->
-        fileBuffer = fs.readFileSync(fullFilePath)
-        ftp.put fs.readFileSync(fullFilePath), './data/images/' + fileName + '.JPG', (err) ->
+        ftp.put fullFilePath, './data/images/' + fileName + '.JPG', (err) ->
             fs.unlinkSync(fullFilePath)
             if err
                 console.log 'Error Saving File To FTP!'
@@ -55,7 +55,7 @@ api.get '/api', (req, res) ->
     currentLastFile = -1 if not currentLastFile
     Picture.find({}).sort('fileName').exec (err, pictures) ->
         if err
-            console.log 'Error Getting File Name From Database'
+            console.log 'Error Getting File Name From Database!'
             res.sendStatus(404)
             return
         (
@@ -64,6 +64,11 @@ api.get '/api', (req, res) ->
                 return
         ) for picture in pictures
         res.sendStatus(404)
+
+# ftp.delete './data/images/' + fileName + '.JPG', (err) ->
+#     console.log 'Error Deleting File From FTP!'
+#     res.sendStatus(404)
+#     return
 
 
 module.exports = api
