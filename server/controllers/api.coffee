@@ -58,7 +58,17 @@ api.get '/api', (req, res) ->
         console.log 'File Name Retrieved Successfully!'
         (
             if +picture.fileName > +currentLastFile
-                res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPEG')
+                ftp.get './data/images/' + picture.fileName + '.JPEG', (err, pictureFromFtp) ->
+                    if err
+                        console.log 'Error Getting File From FTP!'
+                        res.sendStatus(404)
+                        return
+                    console.log 'Get File From FTP Successfully!'
+                    filePath = __dirname + '/' + picture.fileName + '.JPEG'
+                    pictureFromFtp.pipe(fs.createWriteStream(filePath)).on 'finish', ->
+                        res.set('fileName': picture.fileName)
+                        res.sendFile filePath, ->
+                            fs.unlink(filePath)
                 return
         ) for picture in pictures
         console.log 'Did Not Find File File!'

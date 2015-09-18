@@ -76,7 +76,24 @@
       for (i = 0, len = pictures.length; i < len; i++) {
         picture = pictures[i];
         if (+picture.fileName > +currentLastFile) {
-          res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPEG');
+          ftp.get('./data/images/' + picture.fileName + '.JPEG', function(err, pictureFromFtp) {
+            var filePath;
+            if (err) {
+              console.log('Error Getting File From FTP!');
+              res.sendStatus(404);
+              return;
+            }
+            console.log('Get File From FTP Successfully!');
+            filePath = __dirname + '/' + picture.fileName + '.JPEG';
+            return pictureFromFtp.pipe(fs.createWriteStream(filePath)).on('finish', function() {
+              res.set({
+                'fileName': picture.fileName
+              });
+              return res.sendFile(filePath, function() {
+                return fs.unlink(filePath);
+              });
+            });
+          });
           return;
         }
       }
