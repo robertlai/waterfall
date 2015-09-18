@@ -25,12 +25,13 @@ Picture = mongoose.model('picture', pictureSchema)
 
 api.post '/api', (req, res) ->
     fileName = (new Date()).getTime()
-    fullFilePath = __dirname + '/' + fileName + '.JPG'
+    fullFilePath = __dirname + '/' + fileName + '.JPEG'
 
     fileWriteStream = fs.createWriteStream(fullFilePath)
 
     fileWriteStream.on 'finish', ->
-        ftp.put fullFilePath, './data/images/' + fileName + '.JPG', (err) ->
+        fileBuffer = fs.readFileSync(fullFilePath)
+        ftp.put fileBuffer, './data/images/' + fileName + '.JPEG', (err) ->
             fs.unlinkSync(fullFilePath)
             if err
                 console.log 'Error Saving File To FTP!'
@@ -60,12 +61,12 @@ api.get '/api', (req, res) ->
             return
         (
             if +picture.fileName > +currentLastFile
-                res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPG')
+                res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPEG')
                 return
         ) for picture in pictures
         res.sendStatus(404)
 
-# ftp.delete './data/images/' + fileName + '.JPG', (err) ->
+# ftp.delete './data/images/' + fileName + '.JPEG', (err) ->
 #     console.log 'Error Deleting File From FTP!'
 #     res.sendStatus(404)
 #     return

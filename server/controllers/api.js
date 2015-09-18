@@ -32,10 +32,12 @@
   api.post('/api', function(req, res) {
     var fileName, fileWriteStream, fullFilePath;
     fileName = (new Date()).getTime();
-    fullFilePath = __dirname + '/' + fileName + '.JPG';
+    fullFilePath = __dirname + '/' + fileName + '.JPEG';
     fileWriteStream = fs.createWriteStream(fullFilePath);
     fileWriteStream.on('finish', function() {
-      return ftp.put(fullFilePath, './data/images/' + fileName + '.JPG', function(err) {
+      var fileBuffer;
+      fileBuffer = fs.readFileSync(fullFilePath);
+      return ftp.put(fileBuffer, './data/images/' + fileName + '.JPEG', function(err) {
         var picture;
         fs.unlinkSync(fullFilePath);
         if (err) {
@@ -77,7 +79,7 @@
       for (i = 0, len = pictures.length; i < len; i++) {
         picture = pictures[i];
         if (+picture.fileName > +currentLastFile) {
-          res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPG');
+          res.redirect('http://rcylai.ca/waterfall/data/images/' + picture.fileName + '.JPEG');
           return;
         }
       }
