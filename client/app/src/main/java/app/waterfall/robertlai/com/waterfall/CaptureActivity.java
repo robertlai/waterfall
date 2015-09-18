@@ -22,8 +22,16 @@ import android.widget.ImageView;
 import com.loopj.android.http.*;
 
 import org.apache.http.Header;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.util.EntityUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Timer;
@@ -39,7 +47,6 @@ public class CaptureActivity extends ActionBarActivity {
     private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
     private static Date date;
     private static Uri imageUri;
-    private static boolean hasNext = true;
     Timer timer;
 
     public void startTimer(int seconds){
@@ -65,7 +72,7 @@ public class CaptureActivity extends ActionBarActivity {
         cameraButton.setOnClickListener(cameraListener);
 
         getPhoto();
-        //startTimer(5);
+        //startTimer(10);
     }
 
     private OnClickListener cameraListener = new OnClickListener() {
@@ -90,7 +97,6 @@ public class CaptureActivity extends ActionBarActivity {
             client.get(URL, new FileAsyncHttpResponseHandler(this) {
                 @Override
                 public void onSuccess(int statusCode, Header[] headers, File response) {
-                    // Do something with the file `response`
                     System.out.println(statusCode + " " + response.getAbsolutePath());
                     ImageView imageView = (ImageView) findViewById(R.id.image_camera);
                     Bitmap bitmap = BitmapFactory.decodeFile(response.getPath());
@@ -101,9 +107,8 @@ public class CaptureActivity extends ActionBarActivity {
 
                 @Override
                 public void onFailure(int statusCode, Header[] headers, Throwable e, File response) {
-                    // called when response HTTP status is "4XX" (eg. 401, 403, 404)
                     System.out.println(statusCode);
-                    hasNext = false;
+
                 }
             });
         } catch (Exception e){
@@ -112,27 +117,43 @@ public class CaptureActivity extends ActionBarActivity {
     }
 
     private void postPhoto() {
-        File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
-        RequestParams params = new RequestParams();
-        try {
-            params.put("image", myFile);
-        } catch (Exception e) {
-        }
-
-        AsyncHttpClient client = new AsyncHttpClient();
-        client.post(URL, params, new AsyncHttpResponseHandler() {
+        Thread thread = new Thread(new Runnable(){
             @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] bytes) {
-                //Toast.makeText(CaptureActivity.this, statusCode, Toast.LENGTH_LONG).show();
-                System.out.println(statusCode);
-            }
+            public void run(){
+                FileInputStream fis=null;
+                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
+                byte[] buffer = new byte[(int) file.length()];
+                try {
+                    fis = new FileInputStream(file);
+                    fis.read(buffer);
+                    fis.close();
 
-            @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] bytes, Throwable throwable) {
-                //Toast.makeText(CaptureActivity.this, statusCode, Toast.LENGTH_LONG).show();
-                System.out.println(statusCode);
+                    for (int i = 0; i < buffer.length; i++) {
+                        System.out.print((char) buffer[i]);
+                    }
+                }
+                catch(Exception e){
+                    System.out.println("Failed");
+                }
+
+                try {
+                    DefaultHttpClient httpClient = new DefaultHttpClient();
+                    BasicHttpParams hparams = new BasicHttpParams();
+                    HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
+                    httpClient.setParams(hparams);
+                    HttpPost httpPost = new HttpPost(URL);
+
+                    httpPost.setEntity(new ByteArrayEntity(buffer));
+                    //String response = EntityUtils.toString(httpClient.execute(httpPost).getEntity(), HTTP.UTF_8);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
+        thread.start();
+
+
     }
 
     @Override
@@ -153,8 +174,8 @@ public class CaptureActivity extends ActionBarActivity {
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
                 imageView.setImageBitmap(scaledBitmap);
                 //Toast.makeText(CaptureActivity.this, selectedImage.toString(), Toast.LENGTH_LONG).show();
-                //postPhoto();
-                File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
+                postPhoto();
+                /*File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
                 RequestParams params = new RequestParams();
                 try {
                     params.put("image", myFile);
@@ -174,7 +195,7 @@ public class CaptureActivity extends ActionBarActivity {
                         //Toast.makeText(CaptureActivity.this, statusCode, Toast.LENGTH_LONG).show();
                         System.out.println(statusCode);
                     }
-                });
+                });*/
             } catch (Exception e) {
                 Log.e(logtag, e.toString());
             }
