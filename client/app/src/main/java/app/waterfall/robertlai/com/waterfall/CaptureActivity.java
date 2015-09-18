@@ -129,7 +129,7 @@ public class CaptureActivity extends ActionBarActivity {
                     fis.close();
 
                     for (int i = 0; i < buffer.length; i++) {
-                        System.out.print((char) buffer[i]);
+                        //System.out.print((char) buffer[i]);
                     }
                 }
                 catch(Exception e){
@@ -144,7 +144,7 @@ public class CaptureActivity extends ActionBarActivity {
                     HttpPost httpPost = new HttpPost(URL);
 
                     httpPost.setEntity(new ByteArrayEntity(buffer));
-                    //String response = EntityUtils.toString(httpClient.execute(httpPost).getEntity(), HTTP.UTF_8);
+                    String response = EntityUtils.toString(httpClient.execute(httpPost).getEntity(), HTTP.UTF_8);
 
                 } catch (Exception e) {
                     e.printStackTrace();
