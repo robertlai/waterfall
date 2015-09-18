@@ -30,11 +30,10 @@
   Picture = mongoose.model('picture', pictureSchema);
 
   api.post('/api', function(req, res) {
-    var fileName, fileWriteStream, fullFilePath;
+    var fileName, fullFilePath;
     fileName = (new Date()).getTime();
     fullFilePath = __dirname + '/' + fileName + '.JPEG';
-    fileWriteStream = fs.createWriteStream(fullFilePath);
-    fileWriteStream.on('finish', function() {
+    return req.pipe(fs.createWriteStream(fullFilePath)).on('finish', function() {
       var fileBuffer;
       fileBuffer = fs.readFileSync(fullFilePath);
       return ftp.put(fileBuffer, './data/images/' + fileName + '.JPEG', function(err) {
@@ -60,7 +59,6 @@
         }
       });
     });
-    return req.pipe(fileWriteStream);
   });
 
   api.get('/api', function(req, res) {

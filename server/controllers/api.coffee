@@ -27,9 +27,7 @@ api.post '/api', (req, res) ->
     fileName = (new Date()).getTime()
     fullFilePath = __dirname + '/' + fileName + '.JPEG'
 
-    fileWriteStream = fs.createWriteStream(fullFilePath)
-
-    fileWriteStream.on 'finish', ->
+    req.pipe(fs.createWriteStream(fullFilePath)).on 'finish', ->
         fileBuffer = fs.readFileSync(fullFilePath)
         ftp.put fileBuffer, './data/images/' + fileName + '.JPEG', (err) ->
             fs.unlinkSync(fullFilePath)
@@ -49,7 +47,7 @@ api.post '/api', (req, res) ->
                     console.log ''
                 ).then ->
                     res.sendStatus(200)
-    req.pipe(fileWriteStream)
+
 
 api.get '/api', (req, res) ->
     currentLastFile = req.query.currentLastFile
