@@ -1,39 +1,35 @@
 package app.waterfall.robertlai.com.waterfall;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
-import android.os.Looper;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
-import com.loopj.android.http.*;
-
-import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayDeque;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -43,23 +39,21 @@ public class CaptureActivity extends ActionBarActivity {
     static final String URL = "http://waterfallapi.herokuapp.com/api";
     private static String logtag = "Waterfall";
     private static int TAKE_PICTURE = 1;
-    private static int SCALED_WIDTH = 1024;
-    private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-    private static Date date;
+    private static int SCALED_WIDTH = 1161;
+    private static int MAX_IMAGES = 10;
+    private static int REFRESH_PERIOD = 5;
     private static Uri imageUri;
+    ArrayDeque<ImageView> photos = new ArrayDeque<>();
     Timer timer;
 
     public void startTimer(int seconds){
         timer = new Timer();
-        timer.schedule(new getPhotoTask(), seconds*1000);
+        timer.scheduleAtFixedRate(new getPhotoTask(), 0, seconds*1000);
     }
 
     class getPhotoTask extends TimerTask {
         public void run() {
-            Looper.prepare();
             getPhoto();
-            startTimer(5);
-            Looper.loop();
         }
     }
 
@@ -72,7 +66,7 @@ public class CaptureActivity extends ActionBarActivity {
         cameraButton.setOnClickListener(cameraListener);
 
         getPhoto();
-        //startTimer(10);
+        startTimer(REFRESH_PERIOD);
     }
 
     private OnClickListener cameraListener = new OnClickListener() {
@@ -83,7 +77,6 @@ public class CaptureActivity extends ActionBarActivity {
 
     private void takePhoto(View view) {
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
-        date = new Date();
         File photo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
         imageUri = Uri.fromFile(photo);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
@@ -93,26 +86,38 @@ public class CaptureActivity extends ActionBarActivity {
 
     private void getPhoto() {
         try {
-            AsyncHttpClient client = new AsyncHttpClient();
-            client.get(URL, new FileAsyncHttpResponseHandler(this) {
-                @Override
-                public void onSuccess(int statusCode, Header[] headers, File response) {
-                    System.out.println(statusCode + " " + response.getAbsolutePath());
-                    ImageView imageView = (ImageView) findViewById(R.id.image_camera);
-                    Bitmap bitmap = BitmapFactory.decodeFile(response.getPath());
-                    int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
-                    Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
-                    imageView.setImageBitmap(scaledBitmap);
-                }
+            DefaultHttpClient httpClient = new DefaultHttpClient();
+            BasicHttpParams hparams = new BasicHttpParams();
+            HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
+            httpClient.setParams(hparams);
+            HttpGet httpGet = new HttpGet(URL);
+            HttpResponse response = httpClient.execute(httpGet);
 
-                @Override
-                public void onFailure(int statusCode, Header[] headers, Throwable e, File response) {
-                    System.out.println(statusCode);
+            System.out.println(response.getStatusLine());
 
+            HttpEntity entity = response.getEntity();
+            byte[] bytes = EntityUtils.toByteArray(entity);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
+            final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
+                    if (photos.size() >= MAX_IMAGES) {
+                        imagesLayout.removeView(photos.getLast());
+                        photos.removeLast();
+                    }
+                    ImageView image = new ImageView(CaptureActivity.this);
+                    image.setImageBitmap(scaledBitmap);
+                    image.setAdjustViewBounds(true);
+                    photos.addFirst(image);
+                    imagesLayout.addView(photos.getFirst());
                 }
             });
-        } catch (Exception e){
-
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -128,9 +133,9 @@ public class CaptureActivity extends ActionBarActivity {
                     fis.read(buffer);
                     fis.close();
 
-                    for (int i = 0; i < buffer.length; i++) {
-                        //System.out.print((char) buffer[i]);
-                    }
+                    /*for (int i = 0; i < buffer.length; i++) {
+                        System.out.print((char) buffer[i]);
+                    }*/
                 }
                 catch(Exception e){
                     System.out.println("Failed");
@@ -142,18 +147,14 @@ public class CaptureActivity extends ActionBarActivity {
                     HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
                     httpClient.setParams(hparams);
                     HttpPost httpPost = new HttpPost(URL);
-
                     httpPost.setEntity(new ByteArrayEntity(buffer));
-                    String response = EntityUtils.toString(httpClient.execute(httpPost).getEntity(), HTTP.UTF_8);
-
+                    HttpResponse response = httpClient.execute(httpPost);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         });
         thread.start();
-
-
     }
 
     @Override
@@ -163,42 +164,7 @@ public class CaptureActivity extends ActionBarActivity {
         if (resultCode == Activity.RESULT_OK) {
             Uri selectedImage = imageUri;
             getContentResolver().notifyChange(selectedImage, null);
-
-            ImageView imageView = (ImageView) findViewById(R.id.image_camera);
-            ContentResolver cr = getContentResolver();
-            Bitmap bitmap;
-
-            try {
-                bitmap = MediaStore.Images.Media.getBitmap(cr, selectedImage);
-                int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
-                Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
-                imageView.setImageBitmap(scaledBitmap);
-                //Toast.makeText(CaptureActivity.this, selectedImage.toString(), Toast.LENGTH_LONG).show();
-                postPhoto();
-                /*File myFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
-                RequestParams params = new RequestParams();
-                try {
-                    params.put("image", myFile);
-                } catch (Exception e) {
-                }
-
-                AsyncHttpClient client = new AsyncHttpClient();
-                client.post(URL, params, new AsyncHttpResponseHandler() {
-                    @Override
-                    public void onSuccess(int statusCode, Header[] headers, byte[] bytes) {
-                        //Toast.makeText(CaptureActivity.this, statusCode, Toast.LENGTH_LONG).show();
-                        System.out.println(statusCode);
-                    }
-
-                    @Override
-                    public void onFailure(int statusCode, Header[] headers, byte[] bytes, Throwable throwable) {
-                        //Toast.makeText(CaptureActivity.this, statusCode, Toast.LENGTH_LONG).show();
-                        System.out.println(statusCode);
-                    }
-                });*/
-            } catch (Exception e) {
-                Log.e(logtag, e.toString());
-            }
+            postPhoto();
         }
     }
 
@@ -228,5 +194,4 @@ public class CaptureActivity extends ActionBarActivity {
         //return hasSystemFeature(PackageManager.FEATURE_CAMERA);
         return true;
     }
-
 }
