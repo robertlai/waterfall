@@ -48,9 +48,7 @@
           if (err) {
             throw err;
             res.sendStatus(500);
-            return;
           }
-          throw err;
         }).then(function() {
           return res.sendStatus(201);
         });

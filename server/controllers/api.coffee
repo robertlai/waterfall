@@ -25,9 +25,11 @@ Picture = mongoose.model('picture', pictureSchema)
 
 api.post '/api', (req, res) ->
     fileName = (new Date()).getTime()
+    # todo: put this path in a methods (send it the file name)
     fullFilePath = __dirname + '/' + fileName + '.JPEG'
 
     req.pipe(fs.createWriteStream(fullFilePath)).on 'finish', ->
+        # todo: put this path in a methods (send it the file name)
         ftp.put fullFilePath, './data/images/' + fileName + '.JPEG', (err) ->
             fs.unlink(fullFilePath)
             if err
@@ -41,7 +43,6 @@ api.post '/api', (req, res) ->
                     throw err
                     res.sendStatus(500)
                     return
-                throw err
             ).then ->
                 res.sendStatus(201)
 
