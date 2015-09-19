@@ -1,7 +1,9 @@
 package app.waterfall.robertlai.com.waterfall;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -16,6 +18,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -29,6 +32,8 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayDeque;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -65,6 +70,10 @@ public class CaptureActivity extends ActionBarActivity {
         Button cameraButton = (Button) findViewById(R.id.button_camera);
         cameraButton.setOnClickListener(cameraListener);
 
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        //long lastSavedImage = getResources().getInteger(R.string.saved_images_last);
+
+        //loadPhoto(41);
         getPhoto();
         startTimer(REFRESH_PERIOD);
     }
@@ -84,6 +93,30 @@ public class CaptureActivity extends ActionBarActivity {
         setIntent(null);
     }
 
+    private void loadPhoto(long imageNumber) {
+        try {
+            final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), imageNumber + ".jpg").getPath());
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
+                    if (photos.size() >= MAX_IMAGES) {
+                        imagesLayout.removeView(photos.getLast());
+                        photos.removeLast();
+                    }
+                    ImageView image = new ImageView(CaptureActivity.this);
+                    image.setImageBitmap(bitmap);
+                    image.setAdjustViewBounds(true);
+                    photos.addFirst(image);
+                    Toast.makeText(getApplicationContext(), "no", Toast.LENGTH_LONG);
+                    imagesLayout.addView(photos.getFirst());
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void getPhoto() {
         try {
             DefaultHttpClient httpClient = new DefaultHttpClient();
@@ -100,6 +133,14 @@ public class CaptureActivity extends ActionBarActivity {
             Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
             int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
             final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
+
+            OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_store.jpg"));
+            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
+
+            SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPref.edit();
+            //editor.putInt(getString(R.string.saved_images), newSavedImage);
+            editor.commit();
 
             runOnUiThread(new Runnable() {
                 @Override
