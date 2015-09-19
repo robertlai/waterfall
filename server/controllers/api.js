@@ -38,22 +38,21 @@
         var picture;
         fs.unlink(fullFilePath);
         if (err) {
-          console.log('Error Saving File To FTP!');
-          res.sendStatus(404);
+          throw err;
+          res.sendStatus(500);
           return;
         }
-        console.log('File Transferred Successfully!');
         picture = new Picture;
         picture.fileName = fileName;
         return picture.save(function(err, picture) {
           if (err) {
-            console.log('Error Saving Image Name To Database!');
-            res.sendStatus(404);
+            throw err;
+            res.sendStatus(500);
             return;
           }
-          return console.log('File Name Saved Successfully!');
+          throw err;
         }).then(function() {
-          return res.sendStatus(200);
+          return res.sendStatus(201);
         });
       });
     });
@@ -68,22 +67,20 @@
     return Picture.find({}).sort('fileName').exec(function(err, pictures) {
       var i, len, picture;
       if (err) {
-        console.log('Error Getting File Names From Database!');
-        res.sendStatus(404);
+        throw err;
+        res.sendStatus(500);
         return;
       }
-      console.log('File Name Retrieved Successfully!');
       for (i = 0, len = pictures.length; i < len; i++) {
         picture = pictures[i];
         if (+picture.fileName > +currentLastFile) {
           ftp.get('./data/images/' + picture.fileName + '.JPEG', function(err, pictureFromFtp) {
             var filePath;
             if (err) {
-              console.log('Error Getting File From FTP!');
-              res.sendStatus(404);
+              throw err;
+              res.sendStatus(500);
               return;
             }
-            console.log('Get File From FTP Successfully!');
             filePath = __dirname + '/' + picture.fileName + '.JPEG';
             return pictureFromFtp.pipe(fs.createWriteStream(filePath)).on('finish', function() {
               res.set({
@@ -97,7 +94,6 @@
           return;
         }
       }
-      console.log('Did Not Find File File!');
       return res.sendStatus(404);
     });
   });
@@ -106,26 +102,24 @@
     return Picture.find({}).sort('fileName').exec(function(err, pictures) {
       var i, len, picture;
       if (err) {
-        console.log('Error Getting File Names From Database!');
-        res.sendStatus(404);
+        throw err;
+        res.sendStatus(500);
         return;
       }
       for (i = 0, len = pictures.length; i < len; i++) {
         picture = pictures[i];
         ftp["delete"]('./data/images/' + picture.fileName + '.JPEG', function(err) {
           if (err) {
-            console.log('Error Deleting File From FTP!');
-            res.sendStatus(404);
+            throw err;
+            res.sendStatus(500);
           }
         });
       }
       Picture.remove({}, function(err) {
         if (err) {
-          console.log('Error Deleting File Name From Database!');
-          res.sendStatus(404);
-          return;
+          throw err;
+          res.sendStatus(500);
         }
-        return console.log('File Names Deleted Successfully!');
       }).then(function() {
         return res.sendStatus(200);
       });
@@ -136,26 +130,23 @@
     var fileName;
     fileName = req.query.fileName;
     if (!fileName) {
-      console.log("No fileName Provided");
-      res.sendStatus(404);
+      res.sendStatus(500);
       return;
     }
     return ftp["delete"]('./data/images/' + fileName + '.JPEG', function(err) {
       if (err) {
-        console.log('Error Deleting File From FTP!');
-        res.sendStatus(404);
+        throw err;
+        res.sendStatus(500);
         return;
       }
-      console.log('File Deleted Successfully!');
       Picture.remove({
         fileName: fileName
       }, function(err) {
         if (err) {
-          console.log('Error Deleting File Name From Database!');
-          res.sendStatus(404);
+          throw err;
+          res.sendStatus(500);
         }
       });
-      console.log('File Name Deleted Successfully!');
       return res.sendStatus(200);
     });
   });
