@@ -7,10 +7,11 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -39,7 +40,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class CaptureActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity {
     //static final String URL = "http://localhost:3000/api";
     static final String URL = "http://waterfallapi.herokuapp.com/api";
     private static String logtag = "Waterfall";
@@ -51,9 +52,9 @@ public class CaptureActivity extends ActionBarActivity {
     ArrayDeque<ImageView> photos = new ArrayDeque<>();
     Timer timer;
 
-    public void startTimer(int seconds){
+    public void startTimer(int seconds) {
         timer = new Timer();
-        timer.scheduleAtFixedRate(new getPhotoTask(), 0, seconds*1000);
+        timer.scheduleAtFixedRate(new getPhotoTask(), 0, seconds * 1000);
     }
 
     class getPhotoTask extends TimerTask {
@@ -104,7 +105,7 @@ public class CaptureActivity extends ActionBarActivity {
                         imagesLayout.removeView(photos.getLast());
                         photos.removeLast();
                     }
-                    ImageView image = new ImageView(CaptureActivity.this);
+                    ImageView image = new ImageView(MainActivity.this);
                     image.setImageBitmap(bitmap);
                     image.setAdjustViewBounds(true);
                     photos.addFirst(image);
@@ -113,7 +114,7 @@ public class CaptureActivity extends ActionBarActivity {
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(logtag, e.toString());
         }
     }
 
@@ -150,7 +151,7 @@ public class CaptureActivity extends ActionBarActivity {
                         imagesLayout.removeView(photos.getLast());
                         photos.removeLast();
                     }
-                    ImageView image = new ImageView(CaptureActivity.this);
+                    ImageView image = new ImageView(MainActivity.this);
                     image.setImageBitmap(scaledBitmap);
                     image.setAdjustViewBounds(true);
                     photos.addFirst(image);
@@ -158,15 +159,15 @@ public class CaptureActivity extends ActionBarActivity {
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(logtag, e.toString());
         }
     }
 
     private void postPhoto() {
-        Thread thread = new Thread(new Runnable(){
+        Thread thread = new Thread(new Runnable() {
             @Override
-            public void run(){
-                FileInputStream fis=null;
+            public void run() {
+                FileInputStream fis = null;
                 File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
                 byte[] buffer = new byte[(int) file.length()];
                 try {
@@ -177,8 +178,7 @@ public class CaptureActivity extends ActionBarActivity {
                     /*for (int i = 0; i < buffer.length; i++) {
                         System.out.print((char) buffer[i]);
                     }*/
-                }
-                catch(Exception e){
+                } catch (Exception e) {
                     System.out.println("Failed");
                 }
 
@@ -191,7 +191,7 @@ public class CaptureActivity extends ActionBarActivity {
                     httpPost.setEntity(new ByteArrayEntity(buffer));
                     HttpResponse response = httpClient.execute(httpPost);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(logtag, e.toString());
                 }
             }
         });
