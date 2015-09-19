@@ -85,7 +85,7 @@
                 'fileName': picture.fileName
               });
               return res.sendFile(filePath, function() {
-                return fs.unlink(filePath);
+                return fs.unlinkSync(filePath);
               });
             });
           });
