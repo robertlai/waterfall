@@ -36,7 +36,7 @@
     return req.pipe(fs.createWriteStream(fullFilePath)).on('finish', function() {
       return ftp.put(fullFilePath, './data/images/' + fileName + '.JPEG', function(err) {
         var picture;
-        fs.unlink(fullFilePath);
+        fs.unlinkSync(fullFilePath);
         if (err) {
           throw err;
           res.sendStatus(500);
@@ -85,7 +85,7 @@
                 'fileName': picture.fileName
               });
               return res.sendFile(filePath, function() {
-                return fs.unlink(filePath);
+                return fs.unlinkSync(filePath);
               });
             });
           });

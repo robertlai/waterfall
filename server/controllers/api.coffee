@@ -31,7 +31,7 @@ api.post '/api', (req, res) ->
     req.pipe(fs.createWriteStream(fullFilePath)).on 'finish', ->
         # todo: put this path in a methods (send it the file name)
         ftp.put fullFilePath, './data/images/' + fileName + '.JPEG', (err) ->
-            fs.unlink(fullFilePath)
+            fs.unlinkSync(fullFilePath)
             if err
                 throw err
                 res.sendStatus(500)
@@ -66,7 +66,7 @@ api.get '/api', (req, res) ->
                     pictureFromFtp.pipe(fs.createWriteStream(filePath)).on 'finish', ->
                         res.set('fileName': picture.fileName)
                         res.sendFile filePath, ->
-                            fs.unlink(filePath)
+                            fs.unlinkSync(filePath)
                 return
         ) for picture in pictures
         res.sendStatus(404)
