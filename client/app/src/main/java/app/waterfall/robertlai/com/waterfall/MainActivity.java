@@ -128,39 +128,42 @@ public class MainActivity extends ActionBarActivity {
             HttpGet httpGet = new HttpGet(URL + "?currentLastFile=" + currentLastFile);
             HttpResponse response = httpClient.execute(httpGet);
 
-            currentLastFile = response.getFirstHeader("fileName").getValue();
+            if (response.getStatusLine().getStatusCode() == 200) {
+                currentLastFile = response.getFirstHeader("fileName").getValue();
 
-            System.out.println(response.getStatusLine());
+                HttpEntity entity = response.getEntity();
+                byte[] bytes = EntityUtils.toByteArray(entity);
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
+                final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
 
-            HttpEntity entity = response.getEntity();
-            byte[] bytes = EntityUtils.toByteArray(entity);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
-            final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
+                OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_store.jpg"));
+                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
 
-            OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_store.jpg"));
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
+                SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPref.edit();
+                //editor.putInt(getString(R.string.saved_images), newSavedImage);
+                editor.commit();
 
-            SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPref.edit();
-            //editor.putInt(getString(R.string.saved_images), newSavedImage);
-            editor.commit();
-
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
-                    if (photos.size() >= MAX_IMAGES) {
-                        imagesLayout.removeView(photos.getLast());
-                        photos.removeLast();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
+                        if (photos.size() >= MAX_IMAGES) {
+                            imagesLayout.removeView(photos.getLast());
+                            photos.removeLast();
+                        }
+                        ImageView image = new ImageView(MainActivity.this);
+                        image.setImageBitmap(scaledBitmap);
+                        image.setAdjustViewBounds(true);
+                        photos.addFirst(image);
+                        imagesLayout.addView(photos.getFirst());
                     }
-                    ImageView image = new ImageView(MainActivity.this);
-                    image.setImageBitmap(scaledBitmap);
-                    image.setAdjustViewBounds(true);
-                    photos.addFirst(image);
-                    imagesLayout.addView(photos.getFirst());
-                }
-            });
+                });
+            }
+            else{
+                Log.e(logtag, "Response not OK");
+            }
         } catch (Exception e) {
             Log.e(logtag, e.toString());
         }
@@ -193,6 +196,9 @@ public class MainActivity extends ActionBarActivity {
                     HttpPost httpPost = new HttpPost(URL);
                     httpPost.setEntity(new ByteArrayEntity(buffer));
                     HttpResponse response = httpClient.execute(httpPost);
+                    if (response.getStatusLine().getStatusCode() != 200) {
+                        Log.e(logtag, "Response not OK");
+                    }
                 } catch (Exception e) {
                     Log.e(logtag, e.toString());
                 }
