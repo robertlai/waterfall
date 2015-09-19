@@ -47,6 +47,7 @@ public class CaptureActivity extends ActionBarActivity {
     private static int SCALED_WIDTH = 1161;
     private static int MAX_IMAGES = 10;
     private static int REFRESH_PERIOD = 5;
+    private String currentLastFile = "-1";
     private static Uri imageUri;
     ArrayDeque<ImageView> photos = new ArrayDeque<>();
     Timer timer;
@@ -123,8 +124,10 @@ public class CaptureActivity extends ActionBarActivity {
             BasicHttpParams hparams = new BasicHttpParams();
             HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
             httpClient.setParams(hparams);
-            HttpGet httpGet = new HttpGet(URL);
+            HttpGet httpGet = new HttpGet(URL + "?currentLastFile=" + currentLastFile);
             HttpResponse response = httpClient.execute(httpGet);
+
+            currentLastFile = response.getFirstHeader("fileName").getValue();
 
             System.out.println(response.getStatusLine());
 
