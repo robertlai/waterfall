@@ -1,1 +1,1 @@
-include ':app', ':AsyncHttpClient'
+include ':app'
