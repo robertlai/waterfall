@@ -1,4 +1,3 @@
-fs = require('fs')
 express = require('express')
 mongoose = require('mongoose')
 db = require('../Utilities/DB')
@@ -25,26 +24,21 @@ Picture = mongoose.model('picture', pictureSchema)
 
 api.post '/api', (req, res) ->
     fileName = (new Date()).getTime()
-    # todo: put this path in a methods (send it the file name)
-    fullFilePath = __dirname + '/' + fileName + '.JPEG'
 
-    req.pipe(fs.createWriteStream(fullFilePath)).on 'finish', ->
-        # todo: put this path in a methods (send it the file name)
-        ftp.put fullFilePath, './data/images/' + fileName + '.JPEG', (err) ->
-            fs.unlinkSync(fullFilePath)
-            if err
-                throw err
-                res.sendStatus(500)
-                return
+    # todo: put this path in a methods (send it the file name)
+    ftp.put req, './data/images/' + fileName + '.JPEG', (err) ->
+        if err
+            console.log err
+            res.sendStatus(500)
+        else
             picture = new Picture
             picture.fileName = fileName
-            picture.save((err, picture) ->
+            picture.save (err, picture) ->
                 if err
-                    throw err
+                    console.log err
                     res.sendStatus(500)
-                    return
-            ).then ->
-                res.sendStatus(201)
+                else
+                    res.sendStatus(201)
 
 
 api.get '/api', (req, res) ->
@@ -52,46 +46,46 @@ api.get '/api', (req, res) ->
     currentLastFile = -1 if not currentLastFile
     Picture.find({}).sort('fileName').exec (err, pictures) ->
         if err
-            throw err
+            console.log err
             res.sendStatus(500)
-            return
-        (
-            if +picture.fileName > +currentLastFile
+        else
+            fileToGet = null
+            (
+                if +picture.fileName > +currentLastFile
+                    fileToGet = picture.fileName
+                    break
+            ) for picture in pictures
+            if fileToGet
                 ftp.get './data/images/' + picture.fileName + '.JPEG', (err, pictureFromFtp) ->
                     if err
-                        throw err
+                        console.log err
                         res.sendStatus(500)
-                        return
-                    filePath = __dirname + '/' + picture.fileName + '.JPEG'
-                    pictureFromFtp.pipe(fs.createWriteStream(filePath)).on 'finish', ->
+                    else
+                        res.set('Content-Type': 'image/jpeg')
                         res.set('fileName': picture.fileName)
-                        res.sendFile filePath, ->
-                            fs.unlinkSync(filePath)
-                return
-        ) for picture in pictures
-        res.sendStatus(404)
+                        pictureFromFtp.pipe(res)
+            else
+                res.sendStatus(404)
 
+# todo: fix this (get list of images from ftp and delete them (based on containing jpeg and bing certain number of chars long))
 api.delete '/api/all', (req, res) ->
     Picture.find({}).sort('fileName').exec (err, pictures) ->
         if err
-            throw err
+            console.log err
             res.sendStatus(500)
-            return
-        (
-            ftp.delete './data/images/' + picture.fileName + '.JPEG', (err) ->
+        else
+            (
+                ftp.delete './data/images/' + picture.fileName + '.JPEG', (err) ->
+                    if err
+                        console.log err
+                        res.sendStatus(500)
+            ) for picture in pictures
+            Picture.remove {}, (err) ->
                 if err
-                    throw err
+                    console.log err
                     res.sendStatus(500)
-                    return
-        ) for picture in pictures
-        Picture.remove {}, (err) ->
-            if err
-                throw err
-                res.sendStatus(500)
-                return
-        .then ->
-            res.sendStatus(200)
-        return
+                else
+                    res.sendStatus(200)
 
 api.delete '/api', (req, res) ->
     fileName = req.query.fileName
@@ -100,15 +94,15 @@ api.delete '/api', (req, res) ->
         return
     ftp.delete './data/images/' + fileName + '.JPEG', (err) ->
         if err
-            throw err
+            console.log err
             res.sendStatus(500)
-            return
-        Picture.remove {fileName: fileName}, (err) ->
-            if err
-                throw err
-                res.sendStatus(500)
-                return
-        res.sendStatus(200)
+        else
+            Picture.remove {fileName: fileName}, (err) ->
+                if err
+                    console.log err
+                    res.sendStatus(500)
+                else
+                    res.sendStatus(200)
 
 
 module.exports = api
