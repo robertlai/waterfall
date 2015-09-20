@@ -1,7 +1,6 @@
 package app.waterfall.robertlai.com.waterfall;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -42,14 +41,17 @@ import java.util.TimerTask;
 
 public class MainActivity extends ActionBarActivity {
     //static final String URL = "http://localhost:3000/api";
-    static final String URL = "http://waterfallapi.herokuapp.com/api";
+    final String URL = "http://waterfallapi.herokuapp.com/api";
     private static String logtag = "Waterfall";
     private static int TAKE_PICTURE = 1;
     private static int SCALED_WIDTH = 1161;
     private static int MAX_IMAGES = 10;
     private static int REFRESH_PERIOD = 5;
-    private String currentLastFile = "-1";
-    private static Uri imageUri;
+    private long currentLastFile;
+    private Uri imageUri;
+    private SharedPreferences sharedPref;
+    private SharedPreferences.Editor editor;
+    private static final int PREFERENCE_MODE_PRIVATE = 0;
     ArrayDeque<ImageView> photos = new ArrayDeque<>();
     Timer timer;
 
@@ -60,7 +62,9 @@ public class MainActivity extends ActionBarActivity {
 
     class getPhotoTask extends TimerTask {
         public void run() {
+            Log.e(logtag, "Last image: " + String.valueOf(currentLastFile));
             getPhoto();
+            return;
         }
     }
 
@@ -72,11 +76,14 @@ public class MainActivity extends ActionBarActivity {
         Button cameraButton = (Button) findViewById(R.id.button_camera);
         cameraButton.setOnClickListener(cameraListener);
 
-        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        //long lastSavedImage = getResources().getInteger(R.string.saved_images_last);
+        sharedPref = getPreferences(PREFERENCE_MODE_PRIVATE);
+        editor = sharedPref.edit();
+
+        currentLastFile = sharedPref.getLong("last_image", -1);
+
+        Log.e(logtag, String.valueOf(currentLastFile));
 
         //loadPhoto(41);
-        getPhoto();
         startTimer(REFRESH_PERIOD);
     }
 
@@ -97,7 +104,7 @@ public class MainActivity extends ActionBarActivity {
 
     private void loadPhoto(long imageNumber) {
         try {
-            final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), imageNumber + ".jpg").getPath());
+            final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + imageNumber + ".jpg").getPath());
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -120,53 +127,60 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void getPhoto() {
-        try {
-            DefaultHttpClient httpClient = new DefaultHttpClient();
-            BasicHttpParams hparams = new BasicHttpParams();
-            HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
-            httpClient.setParams(hparams);
-            HttpGet httpGet = new HttpGet(URL + "?currentLastFile=" + currentLastFile);
-            HttpResponse response = httpClient.execute(httpGet);
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    DefaultHttpClient httpClient = new DefaultHttpClient();
+                    BasicHttpParams hparams = new BasicHttpParams();
+                    HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
+                    httpClient.setParams(hparams);
+                    Log.e(logtag, URL + "?currentLastFile=" + currentLastFile);
+                    HttpGet httpGet = new HttpGet(URL + "?currentLastFile=" + currentLastFile);
+                    HttpResponse response = httpClient.execute(httpGet);
 
-            if (response.getStatusLine().getStatusCode() == 200) {
-                currentLastFile = response.getFirstHeader("fileName").getValue();
+                    Log.e(logtag, response.getStatusLine().toString());
 
-                HttpEntity entity = response.getEntity();
-                byte[] bytes = EntityUtils.toByteArray(entity);
-                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
-                final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
+                    if (response.getStatusLine().getStatusCode() == 200) {
+                        currentLastFile = Long.parseLong(response.getFirstHeader("fileName").getValue());
 
-                OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_store.jpg"));
-                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
+                        HttpEntity entity = response.getEntity();
+                        byte[] bytes = EntityUtils.toByteArray(entity);
+                        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                        int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
+                        final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
 
-                SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = sharedPref.edit();
-                //editor.putInt(getString(R.string.saved_images), newSavedImage);
-                editor.commit();
+                        OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + currentLastFile + ".jpg"));
+                        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
 
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
-                        if (photos.size() >= MAX_IMAGES) {
-                            imagesLayout.removeView(photos.getLast());
-                            photos.removeLast();
-                        }
-                        ImageView image = new ImageView(MainActivity.this);
-                        image.setImageBitmap(scaledBitmap);
-                        image.setAdjustViewBounds(true);
-                        photos.addFirst(image);
-                        imagesLayout.addView(photos.getFirst());
+                        editor.putLong("last_image", currentLastFile);
+                        editor.commit();
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
+                                if (photos.size() >= MAX_IMAGES) {
+                                    imagesLayout.removeView(photos.getLast());
+                                    photos.removeLast();
+                                }
+                                ImageView image = new ImageView(MainActivity.this);
+                                image.setImageBitmap(scaledBitmap);
+                                image.setAdjustViewBounds(true);
+                                photos.addFirst(image);
+                                imagesLayout.addView(photos.getFirst());
+                            }
+                        });
+                    } else {
+                        Log.e(logtag, "Response not OK ");
                     }
-                });
+                } catch (Exception e) {
+                    Log.e(logtag, e.toString());
+                }
+                return;
             }
-            else{
-                Log.e(logtag, "Response not OK");
-            }
-        } catch (Exception e) {
-            Log.e(logtag, e.toString());
-        }
+        });
+        thread.start();
     }
 
     private void postPhoto() {
@@ -202,6 +216,7 @@ public class MainActivity extends ActionBarActivity {
                 } catch (Exception e) {
                     Log.e(logtag, e.toString());
                 }
+                return;
             }
         });
         thread.start();
@@ -213,7 +228,7 @@ public class MainActivity extends ActionBarActivity {
 
         if (resultCode == Activity.RESULT_OK) {
             Uri selectedImage = imageUri;
-            getContentResolver().notifyChange(selectedImage, null);
+            //getContentResolver().notifyChange(selectedImage, null);
             postPhoto();
         }
     }
