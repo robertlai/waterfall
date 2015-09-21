@@ -35,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
@@ -84,6 +85,9 @@ public class MainActivity extends ActionBarActivity {
         sharedPref = getPreferences(PREFERENCE_MODE_PRIVATE);
         editor = sharedPref.edit();
 
+        File waterfallDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/Waterfall");
+        waterfallDir.mkdirs();
+
         Log.e(LOGTAG, "Loading saved images...");
 
         Set<String> savedImages = sharedPref.getStringSet("saved_images", null);
@@ -92,6 +96,8 @@ public class MainActivity extends ActionBarActivity {
                 files.add(Long.parseLong(image));
             }
         }
+
+        Collections.sort(files);
 
         for (Long file : files) {
             loadPhoto(file);
@@ -118,6 +124,15 @@ public class MainActivity extends ActionBarActivity {
         return lastImage;
     }
 
+    private void savePrefs(){
+        Set<String> fileSet = new HashSet<>();
+        for (Long file : files) {
+            fileSet.add(file.toString());
+        }
+        editor.putStringSet("saved_images", fileSet);
+        editor.commit();
+    }
+
     private void takePhoto(View view) {
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
         File photo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
@@ -129,32 +144,39 @@ public class MainActivity extends ActionBarActivity {
 
     private void loadPhoto(long imageNumber) {
         final long in = imageNumber;
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + in + ".jpg").getPath());
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
-                            if (photos.size() >= MAX_IMAGES) {
-                                imagesLayout.removeView(photos.getLast());
-                                photos.removeLast();
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + in + ".jpg");
+        if (file.exists()) {
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + in + ".jpg").getPath());
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
+                                if (photos.size() >= MAX_IMAGES) {
+                                    imagesLayout.removeView(photos.getLast());
+                                    photos.removeLast();
+                                }
+                                ImageView image = new ImageView(MainActivity.this);
+                                image.setImageBitmap(bitmap);
+                                image.setAdjustViewBounds(true);
+                                photos.addFirst(image);
+                                imagesLayout.addView(photos.getFirst(), 0);
                             }
-                            ImageView image = new ImageView(MainActivity.this);
-                            image.setImageBitmap(bitmap);
-                            image.setAdjustViewBounds(true);
-                            photos.addFirst(image);
-                            imagesLayout.addView(photos.getFirst());
-                        }
-                    });
-                } catch (Exception e) {
-                    Log.e(LOGTAG, e.toString());
+                        });
+                    } catch (Exception e) {
+                        Log.e(LOGTAG, e.toString());
+                    }
                 }
-            }
-        });
-        thread.start();
+            });
+            thread.start();
+        }
+        else{
+            files.remove(files.indexOf(in));
+            savePrefs();
+        }
     }
 
     private void getPhoto() {
@@ -190,12 +212,7 @@ public class MainActivity extends ActionBarActivity {
                         Log.e(LOGTAG, "Saved.");
 
                         files.add(newFile);
-                        Set<String> fileSet = new HashSet<>();
-                        for (Long file : files) {
-                            fileSet.add(file.toString());
-                        }
-                        editor.putStringSet("saved_images", fileSet);
-                        editor.commit();
+                        savePrefs();
 
                         runOnUiThread(new Runnable() {
                             @Override
@@ -209,7 +226,7 @@ public class MainActivity extends ActionBarActivity {
                                 image.setImageBitmap(scaledBitmap);
                                 image.setAdjustViewBounds(true);
                                 photos.addFirst(image);
-                                imagesLayout.addView(photos.getFirst());
+                                imagesLayout.addView(photos.getFirst(), 0);
                             }
                         });
                     } else {
@@ -228,9 +245,23 @@ public class MainActivity extends ActionBarActivity {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                FileInputStream fis = null;
-                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
-                byte[] buffer = new byte[(int) file.length()];
+                try {
+                    Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg").getPath());
+                    int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
+                    final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
+
+                    Log.e(LOGTAG, "Saving image...");
+                    OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg"));
+                    scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
+                    Log.e(LOGTAG, "Saved.");
+                } catch (Exception e){
+                    Log.e(LOGTAG, e.toString());
+                }
+
+                    FileInputStream fis = null;
+                    File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
+                    byte[] buffer = new byte[(int) file.length()];
+
                 try {
                     fis = new FileInputStream(file);
                     fis.read(buffer);
