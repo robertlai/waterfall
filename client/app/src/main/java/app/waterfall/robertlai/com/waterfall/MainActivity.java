@@ -18,7 +18,6 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -35,34 +34,40 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
 
 public class MainActivity extends ActionBarActivity {
     //static final String URL = "http://localhost:3000/api";
-    final String URL = "http://waterfallapi.herokuapp.com/api";
-    private static String logtag = "Waterfall";
-    private static int TAKE_PICTURE = 1;
-    private static int SCALED_WIDTH = 1161;
-    private static int MAX_IMAGES = 10;
-    private static int REFRESH_PERIOD = 5;
-    private long currentLastFile;
+    static final String URL = "http://waterfallapi.herokuapp.com/api";
+    static final int PREFERENCE_MODE_PRIVATE = 0;
+    static final long ZERO_TIME = 1442289600000L;
+    static final String LOGTAG = "Waterfall";
+    static final int TAKE_PICTURE = 1;
+    static final int SCALED_WIDTH = 1161;
+    static final int MAX_IMAGES = 10;
+    static final int REFRESH_PERIOD = 5;
     private Uri imageUri;
     private SharedPreferences sharedPref;
     private SharedPreferences.Editor editor;
-    private static final int PREFERENCE_MODE_PRIVATE = 0;
+
     ArrayDeque<ImageView> photos = new ArrayDeque<>();
+    ArrayList<Long> files = new ArrayList<>();
     Timer timer;
 
     public void startTimer(int seconds) {
+        Log.e(LOGTAG, "Starting timer...");
+        Log.e(LOGTAG, "Period: " + seconds + " seconds");
         timer = new Timer();
         timer.scheduleAtFixedRate(new getPhotoTask(), 0, seconds * 1000);
     }
 
     class getPhotoTask extends TimerTask {
         public void run() {
-            Log.e(logtag, "Last image: " + String.valueOf(currentLastFile));
             getPhoto();
             return;
         }
@@ -79,11 +84,21 @@ public class MainActivity extends ActionBarActivity {
         sharedPref = getPreferences(PREFERENCE_MODE_PRIVATE);
         editor = sharedPref.edit();
 
-        currentLastFile = sharedPref.getLong("last_image", -1);
+        Log.e(LOGTAG, "Loading saved images...");
 
-        Log.e(logtag, String.valueOf(currentLastFile));
+        Set<String> savedImages = sharedPref.getStringSet("saved_images", null);
+        if (savedImages != null) {
+            for (String image : savedImages) {
+                files.add(Long.parseLong(image));
+            }
+        }
 
-        //loadPhoto(41);
+        for (Long file : files) {
+            loadPhoto(file);
+        }
+
+        Log.e(LOGTAG, files.size() + " images loaded.");
+
         startTimer(REFRESH_PERIOD);
     }
 
@@ -92,6 +107,16 @@ public class MainActivity extends ActionBarActivity {
             takePhoto(view);
         }
     };
+
+    private Long getLastFile() {
+        Long lastImage = ZERO_TIME;
+        for (Long file : files) {
+            if (file > lastImage) {
+                lastImage = file;
+            }
+        }
+        return lastImage;
+    }
 
     private void takePhoto(View view) {
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
@@ -103,27 +128,33 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void loadPhoto(long imageNumber) {
-        try {
-            final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + imageNumber + ".jpg").getPath());
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
-                    if (photos.size() >= MAX_IMAGES) {
-                        imagesLayout.removeView(photos.getLast());
-                        photos.removeLast();
-                    }
-                    ImageView image = new ImageView(MainActivity.this);
-                    image.setImageBitmap(bitmap);
-                    image.setAdjustViewBounds(true);
-                    photos.addFirst(image);
-                    Toast.makeText(getApplicationContext(), "no", Toast.LENGTH_LONG);
-                    imagesLayout.addView(photos.getFirst());
+        final long in = imageNumber;
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + in + ".jpg").getPath());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
+                            if (photos.size() >= MAX_IMAGES) {
+                                imagesLayout.removeView(photos.getLast());
+                                photos.removeLast();
+                            }
+                            ImageView image = new ImageView(MainActivity.this);
+                            image.setImageBitmap(bitmap);
+                            image.setAdjustViewBounds(true);
+                            photos.addFirst(image);
+                            imagesLayout.addView(photos.getFirst());
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e(LOGTAG, e.toString());
                 }
-            });
-        } catch (Exception e) {
-            Log.e(logtag, e.toString());
-        }
+            }
+        });
+        thread.start();
     }
 
     private void getPhoto() {
@@ -135,14 +166,17 @@ public class MainActivity extends ActionBarActivity {
                     BasicHttpParams hparams = new BasicHttpParams();
                     HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
                     httpClient.setParams(hparams);
-                    Log.e(logtag, URL + "?currentLastFile=" + currentLastFile);
-                    HttpGet httpGet = new HttpGet(URL + "?currentLastFile=" + currentLastFile);
+
+                    Log.e(LOGTAG, "Newest image: " + getLastFile());
+                    Log.e(LOGTAG, "GET: " + URL + "?currentLastFile=" + getLastFile());
+
+                    HttpGet httpGet = new HttpGet(URL + "?currentLastFile=" + getLastFile());
                     HttpResponse response = httpClient.execute(httpGet);
 
-                    Log.e(logtag, response.getStatusLine().toString());
+                    Log.e(LOGTAG, "Response: " + response.getStatusLine().toString());
 
                     if (response.getStatusLine().getStatusCode() == 200) {
-                        currentLastFile = Long.parseLong(response.getFirstHeader("fileName").getValue());
+                        long newFile = Long.parseLong(response.getFirstHeader("fileName").getValue());
 
                         HttpEntity entity = response.getEntity();
                         byte[] bytes = EntityUtils.toByteArray(entity);
@@ -150,10 +184,17 @@ public class MainActivity extends ActionBarActivity {
                         int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
                         final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
 
-                        OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + currentLastFile + ".jpg"));
+                        Log.e(LOGTAG, "Saving image...");
+                        OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + newFile + ".jpg"));
                         scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
+                        Log.e(LOGTAG, "Saved.");
 
-                        editor.putLong("last_image", currentLastFile);
+                        files.add(newFile);
+                        Set<String> fileSet = new HashSet<>();
+                        for (Long file : files) {
+                            fileSet.add(file.toString());
+                        }
+                        editor.putStringSet("saved_images", fileSet);
                         editor.commit();
 
                         runOnUiThread(new Runnable() {
@@ -172,10 +213,10 @@ public class MainActivity extends ActionBarActivity {
                             }
                         });
                     } else {
-                        Log.e(logtag, "Response not OK ");
+                        Log.e(LOGTAG, "Server response not OK.");
                     }
                 } catch (Exception e) {
-                    Log.e(logtag, e.toString());
+                    Log.e(LOGTAG, e.toString());
                 }
                 return;
             }
@@ -194,12 +235,8 @@ public class MainActivity extends ActionBarActivity {
                     fis = new FileInputStream(file);
                     fis.read(buffer);
                     fis.close();
-
-                    /*for (int i = 0; i < buffer.length; i++) {
-                        System.out.print((char) buffer[i]);
-                    }*/
                 } catch (Exception e) {
-                    System.out.println("Failed");
+                    Log.e(LOGTAG, "Failed to load image: wf_temp.jpg");
                 }
 
                 try {
@@ -207,14 +244,17 @@ public class MainActivity extends ActionBarActivity {
                     BasicHttpParams hparams = new BasicHttpParams();
                     HttpConnectionParams.setConnectionTimeout(hparams, 10 * 1000);
                     httpClient.setParams(hparams);
+
+                    Log.e(LOGTAG, "POST: " + URL);
+
                     HttpPost httpPost = new HttpPost(URL);
                     httpPost.setEntity(new ByteArrayEntity(buffer));
                     HttpResponse response = httpClient.execute(httpPost);
                     if (response.getStatusLine().getStatusCode() != 200) {
-                        Log.e(logtag, "Response not OK");
+                        Log.e(LOGTAG, "Server response not OK.");
                     }
                 } catch (Exception e) {
-                    Log.e(logtag, e.toString());
+                    Log.e(LOGTAG, e.toString());
                 }
                 return;
             }
@@ -228,7 +268,7 @@ public class MainActivity extends ActionBarActivity {
 
         if (resultCode == Activity.RESULT_OK) {
             Uri selectedImage = imageUri;
-            //getContentResolver().notifyChange(selectedImage, null);
+            getContentResolver().notifyChange(selectedImage, null);
             postPhoto();
         }
     }
