@@ -35,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
@@ -93,6 +94,8 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
+        Collections.sort(files);
+
         for (Long file : files) {
             loadPhoto(file);
         }
@@ -146,7 +149,7 @@ public class MainActivity extends ActionBarActivity {
                             image.setImageBitmap(bitmap);
                             image.setAdjustViewBounds(true);
                             photos.addFirst(image);
-                            imagesLayout.addView(photos.getFirst());
+                            imagesLayout.addView(photos.getFirst(), 0);
                         }
                     });
                 } catch (Exception e) {
@@ -209,7 +212,7 @@ public class MainActivity extends ActionBarActivity {
                                 image.setImageBitmap(scaledBitmap);
                                 image.setAdjustViewBounds(true);
                                 photos.addFirst(image);
-                                imagesLayout.addView(photos.getFirst());
+                                imagesLayout.addView(photos.getFirst(), 0);
                             }
                         });
                     } else {
