@@ -190,9 +190,9 @@ public class MainActivity extends ActionBarActivity {
                     httpClient.setParams(hparams);
 
                     Log.e(LOGTAG, "Newest image: " + getLastFile());
-                    Log.e(LOGTAG, "GET: " + URL + "?currentLastFile=" + getLastFile());
+                    Log.e(LOGTAG, "GET: " + URL + "?lastFile=" + getLastFile());
 
-                    HttpGet httpGet = new HttpGet(URL + "?currentLastFile=" + getLastFile());
+                    HttpGet httpGet = new HttpGet(URL + "?lastFile=" + getLastFile());
                     HttpResponse response = httpClient.execute(httpGet);
 
                     Log.e(LOGTAG, "Response: " + response.getStatusLine().toString());
