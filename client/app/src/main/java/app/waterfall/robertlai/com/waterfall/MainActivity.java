@@ -85,6 +85,9 @@ public class MainActivity extends ActionBarActivity {
         sharedPref = getPreferences(PREFERENCE_MODE_PRIVATE);
         editor = sharedPref.edit();
 
+        File waterfallDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/Waterfall");
+        waterfallDir.mkdirs();
+
         Log.e(LOGTAG, "Loading saved images...");
 
         Set<String> savedImages = sharedPref.getStringSet("saved_images", null);
@@ -242,9 +245,23 @@ public class MainActivity extends ActionBarActivity {
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                FileInputStream fis = null;
-                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
-                byte[] buffer = new byte[(int) file.length()];
+                try {
+                    Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg").getPath());
+                    int newHeight = (int) (bitmap.getHeight() * ((float) SCALED_WIDTH / bitmap.getWidth()));
+                    final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, SCALED_WIDTH, newHeight, true);
+
+                    Log.e(LOGTAG, "Saving image...");
+                    OutputStream stream = new FileOutputStream(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg"));
+                    scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
+                    Log.e(LOGTAG, "Saved.");
+                } catch (Exception e){
+                    Log.e(LOGTAG, e.toString());
+                }
+
+                    FileInputStream fis = null;
+                    File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
+                    byte[] buffer = new byte[(int) file.length()];
+
                 try {
                     fis = new FileInputStream(file);
                     fis.read(buffer);
