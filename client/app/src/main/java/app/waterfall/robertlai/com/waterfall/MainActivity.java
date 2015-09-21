@@ -121,6 +121,15 @@ public class MainActivity extends ActionBarActivity {
         return lastImage;
     }
 
+    private void savePrefs(){
+        Set<String> fileSet = new HashSet<>();
+        for (Long file : files) {
+            fileSet.add(file.toString());
+        }
+        editor.putStringSet("saved_images", fileSet);
+        editor.commit();
+    }
+
     private void takePhoto(View view) {
         Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
         File photo = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_temp.jpg");
@@ -132,32 +141,39 @@ public class MainActivity extends ActionBarActivity {
 
     private void loadPhoto(long imageNumber) {
         final long in = imageNumber;
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + in + ".jpg").getPath());
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
-                            if (photos.size() >= MAX_IMAGES) {
-                                imagesLayout.removeView(photos.getLast());
-                                photos.removeLast();
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + in + ".jpg");
+        if (file.exists()) {
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        final Bitmap bitmap = BitmapFactory.decodeFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + in + ".jpg").getPath());
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                LinearLayout imagesLayout = (LinearLayout) findViewById(R.id.linear_layout_images);
+                                if (photos.size() >= MAX_IMAGES) {
+                                    imagesLayout.removeView(photos.getLast());
+                                    photos.removeLast();
+                                }
+                                ImageView image = new ImageView(MainActivity.this);
+                                image.setImageBitmap(bitmap);
+                                image.setAdjustViewBounds(true);
+                                photos.addFirst(image);
+                                imagesLayout.addView(photos.getFirst(), 0);
                             }
-                            ImageView image = new ImageView(MainActivity.this);
-                            image.setImageBitmap(bitmap);
-                            image.setAdjustViewBounds(true);
-                            photos.addFirst(image);
-                            imagesLayout.addView(photos.getFirst(), 0);
-                        }
-                    });
-                } catch (Exception e) {
-                    Log.e(LOGTAG, e.toString());
+                        });
+                    } catch (Exception e) {
+                        Log.e(LOGTAG, e.toString());
+                    }
                 }
-            }
-        });
-        thread.start();
+            });
+            thread.start();
+        }
+        else{
+            files.remove(files.indexOf(in));
+            savePrefs();
+        }
     }
 
     private void getPhoto() {
@@ -193,12 +209,7 @@ public class MainActivity extends ActionBarActivity {
                         Log.e(LOGTAG, "Saved.");
 
                         files.add(newFile);
-                        Set<String> fileSet = new HashSet<>();
-                        for (Long file : files) {
-                            fileSet.add(file.toString());
-                        }
-                        editor.putStringSet("saved_images", fileSet);
-                        editor.commit();
+                        savePrefs();
 
                         runOnUiThread(new Runnable() {
                             @Override
