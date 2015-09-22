@@ -176,7 +176,6 @@ public class MainActivity extends ActionBarActivity {
         else{
             files.remove(files.indexOf(in));
             savePrefs();
-            Log.e(LOGTAG, "running");
         }
     }
 
