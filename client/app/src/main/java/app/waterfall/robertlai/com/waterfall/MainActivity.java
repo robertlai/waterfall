@@ -212,6 +212,16 @@ public class MainActivity extends ActionBarActivity {
                         Log.e(LOGTAG, "Saved.");
 
                         files.add(newFile);
+                        if (files.size() > MAX_IMAGES){
+                            Log.e(LOGTAG, "Image cap reached. Deleting oldest image...");
+                            try {
+                                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + files.remove(0) + ".jpg");
+                                file.delete();
+                                Log.e(LOGTAG, "Image deleted successfully.");
+                            }catch(Exception e) {
+                                Log.e(LOGTAG, "Failed to delete image.");
+                            }
+                        }
                         savePrefs();
 
                         runOnUiThread(new Runnable() {
