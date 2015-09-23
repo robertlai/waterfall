@@ -50,7 +50,7 @@ public class MainActivity extends ActionBarActivity {
     static final String LOGTAG = "Waterfall";
     static final int TAKE_PICTURE = 1;
     static final int SCALED_WIDTH = 1161;
-    static final int MAX_IMAGES = 10;
+    static final int MAX_IMAGES = 15;
     static final int REFRESH_PERIOD = 5;
     private Uri imageUri;
     private SharedPreferences sharedPref;
@@ -99,8 +99,8 @@ public class MainActivity extends ActionBarActivity {
 
         Collections.sort(files);
 
-        for (Long file : files) {
-            loadPhoto(file);
+        for (int i = files.size() - 1; i >= 0; i--){
+            loadPhoto(files.get(i));
         }
 
         Log.e(LOGTAG, files.size() + " images loaded.");
@@ -212,6 +212,16 @@ public class MainActivity extends ActionBarActivity {
                         Log.e(LOGTAG, "Saved.");
 
                         files.add(newFile);
+                        if (files.size() > MAX_IMAGES){
+                            Log.e(LOGTAG, "Image cap reached. Deleting oldest image...");
+                            try {
+                                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Waterfall"), "wf_" + files.remove(0) + ".jpg");
+                                file.delete();
+                                Log.e(LOGTAG, "Image deleted successfully.");
+                            }catch(Exception e) {
+                                Log.e(LOGTAG, "Failed to delete image.");
+                            }
+                        }
                         savePrefs();
 
                         runOnUiThread(new Runnable() {
