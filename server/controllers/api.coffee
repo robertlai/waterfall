@@ -49,6 +49,25 @@ api.get '/api', (req, res) ->
             ) for file in files
             res.sendStatus(404)
 
+api.get '/api/list', (req, res) ->
+    Picture.find({}).sort('fileName').exec (err, files) ->
+        if err
+            res.sendStatus(500)
+            throw err
+        else
+            list = []
+            list.push(file.fileName) for file in files
+            res.json list
+
+api.get '/api/fileName', (req, res) ->
+    Picture.findOne({fileName: req.query.fileName}).exec (err, fileToSend) ->
+        if err
+            res.sendStatus(500)
+            throw err
+        else
+            res.set('Content-Type': 'image/jpeg')
+            res.send(fileToSend.file)
+
 # todo: fix this (get list of images from ftp and delete them (based on containing jpeg and bing certain number of chars long))
 # api.delete '/api/all', (req, res) ->
 #     Picture.find({}).sort('fileName').exec (err, pictures) ->

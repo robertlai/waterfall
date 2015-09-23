@@ -10,7 +10,13 @@
 
   router.use(api);
 
-  router.get('/', function(req, res, next) {
+  router.get('/pictures', function(req, res) {
+    return res.render('pictures', {
+      title: "Pictures"
+    });
+  });
+
+  router.get('/', function(req, res) {
     return res.render('index', {
       title: 'Waterfall API'
     });

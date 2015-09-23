@@ -69,6 +69,39 @@
     });
   });
 
+  api.get('/api/list', function(req, res) {
+    return Picture.find({}).sort('fileName').exec(function(err, files) {
+      var file, i, len, list;
+      if (err) {
+        res.sendStatus(500);
+        throw err;
+      } else {
+        list = [];
+        for (i = 0, len = files.length; i < len; i++) {
+          file = files[i];
+          list.push(file.fileName);
+        }
+        return res.json(list);
+      }
+    });
+  });
+
+  api.get('/api/fileName', function(req, res) {
+    return Picture.findOne({
+      fileName: req.query.fileName
+    }).exec(function(err, fileToSend) {
+      if (err) {
+        res.sendStatus(500);
+        throw err;
+      } else {
+        res.set({
+          'Content-Type': 'image/jpeg'
+        });
+        return res.send(fileToSend.file);
+      }
+    });
+  });
+
   module.exports = api;
 
 }).call(this);

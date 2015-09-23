@@ -1,0 +1,10 @@
+extends layout
+
+block content
+    script(type='text/javascript', src='/javascript/pictures.js')
+    p Welcome to the #{title}
+    p
+        a(href='/') Home
+    div(ng-app='picturesApp' ng-controller='PicturesController')
+        div(ng-repeat='picture in pictures track by $index')
+            img(ng-src='/api/fileName?fileName={{picture}}' width=200 height=200)
