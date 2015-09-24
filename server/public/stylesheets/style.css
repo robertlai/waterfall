@@ -1,8 +1,75 @@
 body {
-  padding: 50px;
+  padding: 30px;
+  background-color: #00F0E2;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
 a {
   color: #00B7FF;
+}
+
+.wrap {
+    overflow: hidden;
+}
+
+.box {
+    float: left;
+    position: relative;
+    width: 20%;
+    padding-bottom: 20%;
+}
+
+.colourBox {
+    background-color: #444444;
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    top: 5px;
+    bottom: 5px;
+    overflow: hidden;
+}
+
+.boxInner {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    bottom: 10px;
+    overflow: hidden;
+}
+
+.boxInner img {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+}
+
+@media only screen and (max-width : 480px) {
+    .box {
+        width: 100%;
+        padding-bottom: 100%;
+    }
+}
+
+@media only screen and (max-width : 650px) and (min-width : 481px) {
+    .box {
+        width: 50%;
+        padding-bottom: 50%;
+    }
+}
+
+@media only screen and (max-width : 1050px) and (min-width : 651px) {
+    .box {
+        width: 33.3%;
+        padding-bottom: 33.3%;
+    }
+}
+
+@media only screen and (max-width : 1290px) and (min-width : 1051px) {
+    .box {
+        width: 25%;
+        padding-bottom: 25%;
+    }
 }
